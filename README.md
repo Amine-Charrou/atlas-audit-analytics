@@ -14,7 +14,7 @@
 
 ## Technologies
 
-Python · PostgreSQL · SQL · Pandas · Streamlit
+Python · PostgreSQL · SQL · Pandas · Streamlit · Plotly
 
 ## Démarrage rapide
 
@@ -24,8 +24,23 @@ Prérequis : Python 3.10 ou supérieur. L'application de départ utilise des don
 python -m venv .venv
 source .venv/bin/activate        # Windows : .venv\Scripts\activate
 pip install -r requirements.txt
+
+# macOS / Linux
+export ATLAS_DATABASE_URL="postgresql://utilisateur:mot_de_passe@localhost:5432/atlas_audit"
 streamlit run app/Home.py
 ```
+
+### Configuration PostgreSQL
+
+Définissez `ATLAS_DATABASE_URL` dans l’environnement avant de lancer Streamlit. Vous pouvez aussi la placer dans `.streamlit/secrets.toml` (ne jamais committer ce fichier) :
+
+```toml
+ATLAS_DATABASE_URL = "postgresql://utilisateur:mot_de_passe@localhost:5432/atlas_audit"
+```
+
+Le dashboard propose les vues **Executive Overview**, **Risk Analytics** (matrice Impact × Likelihood), **Findings Explorer**, **Recommendations Tracker** et **Audit Execution History**. Il lit `audit_findings`, `risk_assessments`, `audit_recommendations`, `audit_runs` et `control_executions`, ajoutés par les scripts de schéma correspondants sous `sql/`. Il ne modifie pas la base.
+
+Sans URL valide ou en cas d’indisponibilité, l’interface affiche un message de configuration/connexion et ne bascule pas vers des données fictives.
 
 ## Structure
 
