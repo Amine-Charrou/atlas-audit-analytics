@@ -26,17 +26,25 @@ Le parcours suit une approche progressive. À chaque étape, formule d'abord ta 
 - Traiter explicitement les valeurs manquantes.
 **Livrable :** une analyse reproductible qui concorde avec SQL.
 
-## Étape 4 — Restitution avec Streamlit
+## Étape 4 — Restitution, risque et suivi
 
-- Afficher les volumes analysés et les exceptions.
-- Ajouter des filtres par rôle, statut et département.
-- Présenter les critères, la date d'analyse et les limites.
-- Structurer un constat : condition, risque, preuve à obtenir, recommandation.
-**Livrable :** un tableau de bord explicable.
+- Les contrôles AC-01 à AC-05 alimentent les constats persistés dans PostgreSQL.
+- Le moteur de risque conserve les évaluations et classe les risques.
+- Le moteur de recommandations associe des actions aux constats évalués.
+- Le dashboard Streamlit présente synthèse, matrice Impact × Likelihood, exploration des constats, recommandations et historique des exécutions.
+**Livrable réalisé :** dashboard explicable connecté à PostgreSQL en lecture seule.
 
-## Étape 5 — Étendre le périmètre
+## Étape 5 — Rapport d'audit reproductible
 
-Choisir un nouveau contrôle (comptes d'anciens employés, accès incompatibles, doublons de transactions) et répéter le cycle complet.
+- Vérifier la date de génération et la fraîcheur des données affichées.
+- Consulter le résumé des constats, niveaux de risque et recommandations.
+- Télécharger les constats et recommandations en CSV ou le rapport complet en JSON.
+- Archiver l'export avec la période et les éléments probants validés par l'équipe d'audit.
+**Livrable :** page Audit Report et exports construits uniquement depuis les données présentes en base.
+
+## Étape 6 — Étendre le périmètre
+
+Choisir un nouveau contrôle ou un domaine (par exemple transactions synthétiques), puis répéter le cycle : objectif, critères, données, test, validation des exceptions et restitution.
 
 ## Questions de réflexion
 

@@ -18,7 +18,7 @@ Python · PostgreSQL · SQL · Pandas · Streamlit · Plotly
 
 ## Démarrage rapide
 
-Prérequis : Python 3.10 ou supérieur. L'application de départ utilise des données synthétiques en mémoire ; PostgreSQL sera intégré dans une étape suivante.
+Prérequis : Python 3.10 ou supérieur et une base PostgreSQL initialisée avec les scripts SQL du projet.
 
 ```bash
 python -m venv .venv
@@ -38,7 +38,7 @@ Définissez `ATLAS_DATABASE_URL` dans l’environnement avant de lancer Streamli
 ATLAS_DATABASE_URL = "postgresql://utilisateur:mot_de_passe@localhost:5432/atlas_audit"
 ```
 
-Le dashboard propose les vues **Executive Overview**, **Risk Analytics** (matrice Impact × Likelihood), **Findings Explorer**, **Recommendations Tracker** et **Audit Execution History**. Il lit `audit_findings`, `risk_assessments`, `audit_recommendations`, `audit_runs` et `control_executions`, ajoutés par les scripts de schéma correspondants sous `sql/`. Il ne modifie pas la base.
+Le dashboard propose les vues **Executive Overview**, **Risk Analytics** (matrice Impact × Likelihood), **Findings Explorer**, **Recommendations Tracker**, **Audit Execution History** et **Audit Report** (exports CSV/JSON reproductibles). Il lit `audit_findings`, `risk_assessments`, `audit_recommendations`, `audit_runs` et `control_executions`, ajoutés par les scripts de schéma correspondants sous `sql/`. Il ne modifie pas la base.
 
 Sans URL valide ou en cas d’indisponibilité, l’interface affiche un message de configuration/connexion et ne bascule pas vers des données fictives.
 
@@ -70,7 +70,7 @@ Le schéma et les données de démonstration sont dans [sql/](sql/). Le cadrage 
 2. Écrire des contrôles SQL explicables et documenter les critères.
 3. Comparer les résultats SQL avec une analyse Pandas.
 4. Ajouter filtres, indicateurs et fiches de constats dans Streamlit.
-5. Produire un rapport d'audit reproductible.
+5. Produire un rapport d'audit reproductible — disponible dans le dashboard via la page Audit Report.
 
 ## Contribution pédagogique
 

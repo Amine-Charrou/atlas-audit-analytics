@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import os
+from datetime import datetime, timezone
 from typing import Any
 
 import pandas as pd
@@ -30,7 +32,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-PAGES = ["Executive Overview", "Risk Analytics", "Findings Explorer", "Recommendations Tracker", "Audit Execution History"]
+PAGES = ["Executive Overview", "Risk Analytics", "Findings Explorer", "Recommendations Tracker", "Audit Execution History", "Audit Report"]
 
 
 def database_url() -> str | None:
@@ -249,7 +251,7 @@ elif page == "Recommendations Tracker":
         cols=[c for c in ["recommendation_id","finding_id","control_code","title","priority","status","assigned_to","due_date","created_at"] if c in view]
         st.dataframe(view[cols],use_container_width=True,hide_index=True)
 
-else:
+elif page == "Audit Execution History":
     header("Audit Execution History", "Historique des traitements et exécutions des contrôles AC-01 à AC-05")
     if runs.empty and executions.empty: empty("Aucun historique d’exécution n’est disponible. Les tables audit_runs et control_executions sont vides ou absentes.")
     if not runs.empty:
@@ -266,6 +268,69 @@ else:
         fig=px.bar(counts,x="control_code",y="Findings",color_discrete_sequence=[BLUE],hover_data=["Executions"])
         fig.update_xaxes(title="Contrôle"); fig.update_yaxes(title="Constats détectés")
         st.plotly_chart(setup_plot(fig),use_container_width=True)
+
+elif page == "Audit Report":
+    header("Audit Report", "Rapport reproductible construit à partir des données actuellement enregistrées dans PostgreSQL")
+    if findings.empty and recs.empty and runs.empty and executions.empty:
+        empty("Aucune donnée d’audit n’est disponible pour le rapport. Exécute les contrôles et les traitements de risque, puis actualise le dashboard.")
+    else:
+        generated_at = datetime.now(timezone.utc)
+        unresolved = findings[findings.status.ne("Resolved")] if not findings.empty else findings
+        risk_counts = (
+            {str(level): int(count) for level, count in findings.risk_level.value_counts().items()}
+            if not findings.empty and "risk_level" in findings else {}
+        )
+        open_recommendations = (
+            recs[recs.status.isin(["Open", "In Progress"])]
+            if not recs.empty and "status" in recs else recs
+        )
+        overdue_recommendations = 0
+        if not open_recommendations.empty and "due_date" in open_recommendations:
+            due = pd.to_datetime(open_recommendations.due_date, errors="coerce")
+            overdue_recommendations = int((due.dt.date < generated_at.date()).fillna(False).sum())
+
+        report = {
+            "report_title": "Atlas Audit Analytics — Audit Report",
+            "generated_at_utc": generated_at.isoformat(),
+            "data_source": "PostgreSQL via ATLAS_DATABASE_URL",
+            "summary": {
+                "findings_total": len(findings),
+                "findings_unresolved": len(unresolved),
+                "findings_by_risk_level": risk_counts,
+                "recommendations_total": len(recs),
+                "recommendations_open_or_in_progress": len(open_recommendations),
+                "recommendations_overdue": overdue_recommendations,
+                "audit_runs_total": len(runs),
+                "control_executions_total": len(executions),
+            },
+            "findings": json.loads(findings.to_json(orient="records", date_format="iso", force_ascii=False)) if not findings.empty else [],
+            "recommendations": json.loads(recs.to_json(orient="records", date_format="iso", force_ascii=False)) if not recs.empty else [],
+            "audit_runs": json.loads(runs.to_json(orient="records", date_format="iso", force_ascii=False)) if not runs.empty else [],
+            "control_executions": json.loads(executions.to_json(orient="records", date_format="iso", force_ascii=False)) if not executions.empty else [],
+            "interpretation_note": "Les exceptions sont des signaux à investiguer et ne constituent pas, à elles seules, une preuve de fraude.",
+        }
+        st.caption(f"Généré le {generated_at.strftime('%Y-%m-%d %H:%M UTC')} · Le contenu reflète les données chargées à cette date.")
+        m1,m2,m3,m4=st.columns(4)
+        m1.metric("Constats",len(findings)); m2.metric("Non résolus",len(unresolved)); m3.metric("Recommandations ouvertes",len(open_recommendations)); m4.metric("Recommandations en retard",overdue_recommendations)
+        st.subheader("Résumé exécutif")
+        if not findings.empty:
+            st.write(f"Le registre contient **{len(findings)} constat(s)**, dont **{len(unresolved)} non résolu(s)**. Les niveaux de risque évalués sont présentés ci-dessous.")
+            if risk_counts:
+                risk_table=pd.DataFrame([{"Niveau":level,"Constats":count} for level,count in risk_counts.items()]).sort_values("Niveau")
+                st.dataframe(risk_table,use_container_width=True,hide_index=True)
+        else:
+            st.write("Aucun constat n’est enregistré.")
+        if not executions.empty:
+            st.markdown("#### Exécutions des contrôles")
+            st.dataframe(executions.groupby(["control_code","status"],dropna=False).agg(Executions=("execution_id","count"),Constats=("findings_count","sum")).reset_index(),use_container_width=True,hide_index=True)
+        st.markdown("#### Télécharger les données du rapport")
+        d1,d2,d3=st.columns(3)
+        if not findings.empty:
+            d1.download_button("Constats · CSV",findings.to_csv(index=False).encode("utf-8-sig"),"atlas_findings.csv","text/csv",use_container_width=True)
+        if not recs.empty:
+            d2.download_button("Recommandations · CSV",recs.to_csv(index=False).encode("utf-8-sig"),"atlas_recommendations.csv","text/csv",use_container_width=True)
+        d3.download_button("Rapport complet · JSON",json.dumps(report,ensure_ascii=False,indent=2,default=str).encode("utf-8"),"atlas_audit_report.json","application/json",use_container_width=True)
+        st.caption("Le JSON inclut le résumé, les constats, les recommandations et l’historique d’exécution présents dans la base au moment du chargement.")
 
 st.divider()
 st.caption("Atlas Audit Analytics · Données issues de PostgreSQL · Les exceptions sont des signaux à investiguer, pas des conclusions de fraude.")
