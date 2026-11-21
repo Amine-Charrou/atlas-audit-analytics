@@ -4,6 +4,8 @@
 
 > Projet éducatif indépendant. L'entreprise et les exemples de données sont fictifs. Aucun lien d'affiliation avec Forvis Mazars.
 
+![Croquis de l’objectif et du parcours d’Atlas Audit Analytics](docs/assets/atlas-audit-objective.png)
+
 ## Objectifs
 
 - Comprendre les contrôles d'accès et le cycle de vie des comptes.
