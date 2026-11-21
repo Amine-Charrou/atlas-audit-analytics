@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "atlas-audit-analytics"
+version = "0.1.0"
+description = "Educational IT audit analytics platform for identity and access controls."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas>=2.0,<4.0",
+    "plotly>=5.18,<7.0",
+    "psycopg[binary]>=3.2,<4.0",
+    "streamlit>=1.30,<2.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0,<10.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

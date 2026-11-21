@@ -3,18 +3,15 @@ from __future__ import annotations
 import json
 import os
 from datetime import datetime, timezone
-from typing import Any
 
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import psycopg
 import streamlit as st
-from psycopg.rows import dict_row
+from atlas_audit.dashboard.repository import load_dashboard_data
 
 st.set_page_config(page_title="Atlas Audit Analytics", page_icon="◈", layout="wide")
 
-NAVY = "#17365D"
 BLUE = "#2878B5"
 PALETTE = {"Low": "#2E8B57", "Medium": "#D99B20", "High": "#E47728", "Critical": "#C64245"}
 PLOT = dict(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="#334155", margin=dict(l=12, r=12, t=38, b=12))
@@ -45,67 +42,6 @@ def database_url() -> str | None:
         return None
 
 
-def load_data() -> tuple[dict[str, pd.DataFrame], str | None]:
-    """Read the dashboard's supported tables using a read-only PostgreSQL session."""
-    url = database_url()
-    if not url:
-        return {}, "ATLAS_DATABASE_URL n’est pas configurée. Définissez-la dans l’environnement ou dans .streamlit/secrets.toml."
-    try:
-        with psycopg.connect(url, row_factory=dict_row, connect_timeout=5, options="-c default_transaction_read_only=on") as conn:
-            with conn.transaction():
-                tables = {r["table_name"] for r in conn.execute("""
-                    SELECT table_name FROM information_schema.tables
-                    WHERE table_schema = current_schema()
-                """).fetchall()}
-                out: dict[str, pd.DataFrame] = {}
-                if "audit_findings" in tables:
-                    out["findings"] = pd.DataFrame(conn.execute("""
-                        SELECT f.finding_id, f.control_code, f.exception_type, f.title,
-                               f.description, f.affected_user_id, f.status, f.detected_at,
-                               f.resolved_at, f.source_key, f.last_seen_at, f.detection_count,
-                               ra.impact_score, ra.likelihood_score, ra.risk_score, ra.risk_level,
-                               ra.assessed_at,
-                               u.username, e.employee_number,
-                               d.department_name AS department
-                        FROM audit_findings f
-                        LEFT JOIN LATERAL (
-                            SELECT impact_score, likelihood_score, risk_score, risk_level, assessed_at
-                            FROM risk_assessments WHERE finding_id=f.finding_id
-                            ORDER BY assessed_at DESC, assessment_id DESC LIMIT 1
-                        ) ra ON TRUE
-                        LEFT JOIN users u ON u.user_id=f.affected_user_id
-                        LEFT JOIN employees e ON e.employee_id=u.employee_id
-                        LEFT JOIN departments d ON d.department_id=e.department_id
-                        ORDER BY f.detected_at DESC, f.finding_id DESC
-                    """).fetchall())
-                if "audit_recommendations" in tables:
-                    out["recommendations"] = pd.DataFrame(conn.execute("""
-                        SELECT r.recommendation_id, r.finding_id, r.title, r.description,
-                               r.priority, r.status, r.assigned_to, r.due_date,
-                               r.completed_at, r.created_at,
-                               f.control_code, f.exception_type, f.status AS finding_status
-                        FROM audit_recommendations r
-                        LEFT JOIN audit_findings f ON f.finding_id=r.finding_id
-                        ORDER BY r.due_date NULLS LAST, r.created_at DESC
-                    """).fetchall())
-                if "audit_runs" in tables:
-                    out["runs"] = pd.DataFrame(conn.execute("""
-                        SELECT run_id, started_at, completed_at, status, triggered_by
-                        FROM audit_runs ORDER BY started_at DESC, run_id DESC
-                    """).fetchall())
-                if "control_executions" in tables:
-                    out["executions"] = pd.DataFrame(conn.execute("""
-                        SELECT ce.execution_id, ce.run_id, ce.control_code, ce.status,
-                               ce.findings_count, ce.error_message, ce.started_at, ce.completed_at
-                        FROM control_executions ce ORDER BY ce.started_at DESC, ce.execution_id DESC
-                    """).fetchall())
-        return out, None
-    except psycopg.Error as exc:
-        return {}, f"Connexion ou lecture PostgreSQL impossible : {exc.__class__.__name__}: {exc}"
-    except Exception as exc:
-        return {}, f"Impossible de charger le tableau de bord : {exc.__class__.__name__}: {exc}"
-
-
 def empty(label: str) -> None:
     st.info(label)
 
@@ -123,7 +59,8 @@ def header(title: str, subtitle: str) -> None:
     st.markdown(f'<div class="hero"><h1>{title}</h1><p>{subtitle}</p></div>', unsafe_allow_html=True)
 
 
-data, db_error = load_data()
+data, db_error = load_dashboard_data(database_url())
+schema_warnings = data.get("_schema_warnings", []) if not db_error else []
 with st.sidebar:
     st.markdown("## ◈ Atlas Audit Analytics")
     st.caption("Audit interne · Accès & risques")
@@ -133,6 +70,8 @@ with st.sidebar:
         st.error("Base indisponible")
     else:
         st.success("PostgreSQL connecté · lecture seule")
+        for warning in schema_warnings:
+            st.warning(warning)
     if st.button("Actualiser", use_container_width=True):
         st.rerun()
     st.caption("Les données affichées proviennent de la base configurée.")

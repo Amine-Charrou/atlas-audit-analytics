@@ -2,13 +2,21 @@
 __pycache__/
 *.py[cod]
 .venv/
+.venv-*/
 venv/
 .pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
 
 # Secrets and local configuration
 .env
 .env.*
 !.env.example
+.streamlit/secrets.toml
 
 # Local data and generated outputs
 data/local/

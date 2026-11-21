@@ -33,6 +33,17 @@ Le premier module porte sur la revue des accès : comptes actifs et inactifs, r�
 - **Streamlit** : interface interactive de consultation.
 - **SQL** : définition des tables et règles d'analyse.
 
+## Architecture actuelle
+
+- `app/Home.py` : navigation et présentation Streamlit.
+- `src/atlas_audit/dashboard/repository.py` : requêtes de lecture seule et chargement des jeux du dashboard.
+- `src/atlas_audit/integrations/` : exécution des contrôles et centralisation des constats.
+- `src/atlas_audit/risk/` : calcul, classification et persistance des évaluations de risque.
+- `src/atlas_audit/recommendations/` : catalogue et génération des recommandations.
+- `sql/` : schéma, migrations, contrôles et jeux de données synthétiques.
+
+Le paquet Python est configuré dans `pyproject.toml`. `requirements.txt` reste le point d’installation simple pour l’application ; les dépendances de développement sont dans l’extra `dev`.
+
 ## Hors périmètre initial
 
 Connexion à des systèmes de production, décision automatisée sur des personnes, preuve de fraude, authentification multi-utilisateur et déploiement public.
