@@ -2,7 +2,7 @@
 
 **Plateforme pédagogique d'IT Audit & Data Analytics** — un projet *learning by doing* pour apprendre à transformer des données fictives en contrôles auditables, constats documentés et analyses utiles.
 
-> Projet éducatif indépendant. L'entreprise et les exemples de données sont fictifs. Aucun lien d'affiliation avec Forvis Mazars.
+> Projet éducatif indépendant basé sur des exemples fictifs.
 
 ![Croquis de l’objectif et du parcours d’Atlas Audit Analytics](docs/assets/atlas-audit-objective.png)
 
